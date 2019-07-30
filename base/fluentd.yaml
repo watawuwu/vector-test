@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: fluentd-forwarder
+  name: fluentd-forwarder
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fluentd-forwarder
+  template:
+    metadata:
+      labels:
+        app: fluentd-forwarder
+    spec:
+      initContainers:
+      - image: watawuwu/dummy-access-log:0.2.0
+        name: dummy-data
+        args:
+        - sh
+        - -c
+        - |
+          /tools/gen.bash
+          mkdir -p /data/buffer /data/pos
+          chown 100:100 /data/buffer
+          chown 100:100 /data/pos
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: tools
+          mountPath: /tools
+      containers:
+      - image: fluent/fluentd:v1.6.2-1.0
+        name: fluentd
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: conf
+          mountPath: /fluentd/etc
+      volumes:
+      - name: data
+        emptyDir: {}
+      - name: conf
+        configMap:
+          name: fluentd-forwarder
+      - name: tools
+        configMap:
+          name: tools
+          defaultMode: 0777
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: fluentd-aggregator
+  name: fluentd-aggregator
+  namespace: default
+spec:
+  selector:
+    app: fluentd-aggregator
+  ports:
+  - name: fluentd
+    port: 24224
+    protocol: TCP
+    # targetPort:: 24224
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: fluentd-aggregator
+  name: fluentd-aggregator
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fluentd-aggregator
+  template:
+    metadata:
+      labels:
+        app: fluentd-aggregator
+    spec:
+      containers:
+      - image: fluent/fluentd:v1.6.2-1.0
+        name: fluentd
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: conf
+          mountPath: /fluentd/etc
+      volumes:
+      - name: data
+        emptyDir: {}
+      - name: conf
+        configMap:
+          name: fluentd-aggregator

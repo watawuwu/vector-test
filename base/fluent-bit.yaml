@@ -1,0 +1,124 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: fluent-bit-forwarder
+  name: fluent-bit-forwarder
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fluent-bit-forwarder
+  template:
+    metadata:
+      labels:
+        app: fluent-bit-forwarder
+    spec:
+      initContainers:
+      - image: watawuwu/dummy-access-log:0.1.0
+        name: dummy-data
+        args:
+        - sh
+        - -c
+        - |
+          /tools/gen.bash
+          mkdir -p /data/buffer /data/pos
+          chown 100:100 /data/buffer
+          chown 100:100 /data/pos
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: tools
+          mountPath: /tools
+      containers:
+      - image: fluent/fluent-bit:1.2.2
+        name: fluent-bit
+        args:
+        - /fluent-bit/bin/fluent-bit
+        - --config
+        - /conf/fluent-bit.conf
+        - --storage_path
+        - /data
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: conf
+          mountPath: /conf
+      volumes:
+      - name: data
+        emptyDir: {}
+      - name: conf
+        configMap:
+          name: fluent-bit-forwarder
+      - name: tools
+        configMap:
+          name: tools
+          defaultMode: 0777
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: fluent-bit-aggregator
+  name: fluent-bit-aggregator
+  namespace: default
+spec:
+  selector:
+    app: fluent-bit-aggregator
+  ports:
+  - name: fluent-bit
+    port: 24224
+    protocol: TCP
+    # targetPort:: 24224
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: fluent-bit-aggregator
+  name: fluent-bit-aggregator
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fluent-bit-aggregator
+  template:
+    metadata:
+      labels:
+        app: fluent-bit-aggregator
+    spec:
+      initContainers:
+      - image: watawuwu/dummy-access-log:0.2.0
+        name: buffer-path
+        args:
+        - sh
+        - -c
+        - |
+          mkdir -p /data/buffer /data/pos
+          chown 100:100 /data/buffer
+          chown 100:100 /data/pos
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      containers:
+      - image: fluent/fluent-bit:1.2.2
+        name: fluent-bit
+        args:
+        - /fluent-bit/bin/fluent-bit
+        - --config
+        - /conf/fluent-bit.conf
+        - --storage_path
+        - /data
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: conf
+          mountPath: /conf
+      volumes:
+      - name: data
+        emptyDir: {}
+      - name: conf
+        configMap:
+          name: fluent-bit-aggregator

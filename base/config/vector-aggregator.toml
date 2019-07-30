@@ -1,0 +1,19 @@
+data_dir = "/data"
+
+[sources.vector]
+  type = "vector"
+  address = "0.0.0.0:9000"
+
+  shutdown_timeout_secs = 30 # default, seconds
+
+[sinks.blackhole]
+  type = "blackhole"
+  inputs = ["vector"]
+  print_amount = 1000
+
+  # OPTIONAL - Buffer
+  [sinks.blackhole.buffer]
+    type = "memory" # default, enum: "memory", "disk"
+    when_full = "block" # default, enum: "block", "drop_newest"
+    max_size = 104900000 # no default, bytes, relevant when type = "disk"
+    num_items = 500 # default, events, relevant when type = "memory"

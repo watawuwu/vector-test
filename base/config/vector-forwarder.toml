@@ -1,0 +1,17 @@
+data_dir = "/data"
+
+[sources.logs]
+  type               = "file"
+  include            = ["/data/*.log"]
+  start_at_beginning = true
+
+[sinks.vector]
+  type = "vector"
+  inputs = ["logs"]
+  address = "vector-aggregator:9000"
+
+  [sinks.vector.buffer]
+    type = "disk" # default, enum: "memory", "disk"
+    when_full = "block" # default, enum: "block", "drop_newest"
+    max_size = 268435456 # no default, bytes, relevant when type = "disk"
+

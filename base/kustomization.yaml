@@ -1,0 +1,58 @@
+commonLabels:
+  component: vector
+
+resources:
+- vector.yaml
+- fluentd.yaml
+- fluent-bit.yaml
+- prometheus.yaml
+- grafana.yaml
+
+configMapGenerator:
+- name: vector-forwarder
+  namespace: default
+  files:
+  - vector.toml=config/vector-forwarder.toml
+- name: vector-aggregator
+  namespace: default
+  files:
+  - vector.toml=config/vector-aggregator.toml
+- name: tools
+  namespace: default
+  files:
+  - config/flog.bash
+  - config/gen.bash
+- name: fluentd-forwarder
+  namespace: default
+  files:
+  - fluent.conf=config/fluentd-forwarder.conf
+- name: fluentd-aggregator
+  namespace: default
+  files:
+  - fluent.conf=config/fluentd-aggregator.conf
+- name: fluent-bit-forwarder
+  namespace: default
+  files:
+  - fluent-bit.conf=config/fluent-bit-forwarder.conf
+- name: fluent-bit-aggregator
+  namespace: default
+  files:
+  - fluent-bit.conf=config/fluent-bit-aggregator.conf
+- name: prometheus
+  namespace: kube-system
+  files:
+  - config/prometheus.yaml
+- name: grafana-datasources
+  namespace: kube-system
+  files:
+  - config/grafana-datasources.yaml
+- name: grafana-dashboard-providers
+  namespace: kube-system
+  files:
+  - config/grafana-dashboard-providers.yaml
+- name: grafana-dashboards
+  namespace: kube-system
+  files:
+  - config/dashboards/data-router.json
+
+
